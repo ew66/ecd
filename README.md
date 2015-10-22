@@ -4,6 +4,16 @@ A extention tool to manage your working path list
 ### Help page
 ```sh
 $ ecd -h
+ecd [ -i | -b [Index] | -s | -l | -h | -r [Index] | -[Index] | [DIRECTORY] ]
+       -i: interactive mode
+       -b: branch mode, [Index]: 0..Current History Count
+       -l: list the history
+       -s: sort list
+       -h: display this information
+       -r: remove a certain index
+       -[NUMBER]: go to index NUMBER
+       [DIRECTORY]: go to DIRECTORY
+
 ```
 ### Installation
 0. copy the script to your home directory
