@@ -9,10 +9,17 @@ declare -i ECD_HISTORY_LIST_CNT=0
 declare -a ECD_HISTORY_LIST
 declare -i __ECD_DEBUG__=0
 
+# Set readlink to greadlink if OS is Darwin
+if [[ $OSTYPE == *"darwin"* ]]; then
+    declare ECD_READLINK=greadlink
+else
+    declare ECD_READLINK=readlink
+fi
+
 # Just a copy of echo
 function decho () {
 
-    if (( "$__ECD_DEBUG__" == 1 )); then
+    if (( $__ECD_DEBUG__ == 1 )); then
         echo "$1"
     fi
 }
@@ -21,20 +28,20 @@ function decho () {
 # Will put an asterisk after PWD
 function draw_menu () {
 
-    declare -i idx=0    
+    declare -i idx=0	
     decho "$PWD"
 
     for ((idx=0; idx<$ECD_HISTORY_LIST_CNT; idx++))
     do
         if [ "$PWD" == ${ECD_HISTORY_LIST[$idx]} ]; then
-            # for Linux
+			# for Linux
             # echo -e "\e[31;43m$idx)\t${ECD_HISTORY_LIST[$idx]}\e[00m"
-            # for Mac OS X
+			# for Mac OS X
             echo -e "\033[38;5;227m$idx)\t${ECD_HISTORY_LIST[$idx]}\033[00m"
         else
-            # for Linux
+			# for Linux
             # echo -e "\e[91m$idx)\t${ECD_HISTORY_LIST[$idx]}\e[00m"
-            # for Mac OS X
+			# for Mac OS X
             echo -e "\033[38;5;146m$idx)\t${ECD_HISTORY_LIST[$idx]}\033[00m"
         fi
     done
@@ -43,7 +50,7 @@ function draw_menu () {
 # $1: the string to be put to the last position
 function write_file () {
 
-    # local variables
+	# local variables
     let array_end=$ECD_HISTORY_LIST_CNT
     let array_start=0
 
@@ -52,21 +59,21 @@ function write_file () {
     # clear file 
     > "$ECD_TEMP_FILE_PATH"
 
-    # determine start position of the list
-    if (( "$ECD_HISTORY_LIST_CNT" > "$ECD_MAX_HISTORY_NUM" )); then                    
+	# determine start position of the list
+    if (( $ECD_HISTORY_LIST_CNT > $ECD_MAX_HISTORY_NUM )); then                    
         let array_start=$ECD_HISTORY_LIST_CNT-$ECD_MAX_HISTORY_NUM        
-    fi           
+	fi           
 
-    # Reorganize the list. "$1" will be put in the end of the list
+	# Reorganize the list. "$1" will be put in the end of the list
     decho "$array_start, $array_end"
     for ((c=$array_start; c<$array_end; c++))
     do                
-        # force reorder
-        if [ "${ECD_HISTORY_LIST[$c]}" != "$1" ]; then
-            echo "${ECD_HISTORY_LIST[$c]}" >> "$ECD_TEMP_FILE_PATH"
+		# force reorder
+    	if [ "${ECD_HISTORY_LIST[$c]}" != "$1" ]; then
+        	echo "${ECD_HISTORY_LIST[$c]}" >> "$ECD_TEMP_FILE_PATH"
             decho "$c, ${ECD_HISTORY_LIST[$c]}"
         fi
-    done
+	done
 
     # Special processing: Used for -r mode 
     if [ "$1" != "" ]; then 
@@ -79,15 +86,15 @@ function write_file () {
 # Takes no PARAMETERs
 # Just print out the usage function
 function usage {
-    echo "Usage: ecd [ -i | -b [Index] | -s | -l | -h | -r [Index] | -[Index] | [DIRECTORY] ]"
-    echo "       -i: interactive mode"
-    echo "       -b: branch mode, [Index]: 0..Current History Count"
-    echo "       -l: list the history"
-    echo "       -s: sort list"
-    echo "       -h: display this information"
+	echo "Usage: ecd [ -i | -b [Index] | -s | -l | -h | -r [Index] | -[Index] | [DIRECTORY] ]"
+	echo "       -i: interactive mode"
+	echo "       -b: branch mode, [Index]: 0..Current History Count"
+	echo "       -l: list the history"
+	echo "       -s: sort list"
+	echo "       -h: display this information"
     echo "       -r: remove a certain index"
     echo "       -[NUMBER]: go to index NUMBER"
-    echo "       [DIRECTORY]: go to DIRECTORY"
+	echo "       [DIRECTORY]: go to DIRECTORY"
 }
 
 function ecd {
@@ -101,7 +108,7 @@ function ecd {
     let ECD_HISTORY_LIST_CNT=0
 
     # Translate PWD
-    pwdFullPath=$(greadlink -f $PWD)
+    pwdFullPath=$($ECD_READLINK -f $PWD)
 
     # Step 0. Just by pass '-', the user knows what he is doing.
     if [ "$PARAM_01" == "-" ]; then
@@ -109,7 +116,7 @@ function ecd {
         return $TRUE
     fi
 
-    # to simulate cd: when no param, go $HOME
+	# to simulate cd: when no param, go $HOME
     if [ "$PARAM_01" == "" ]; then
         PARAM_01="$HOME"
     fi
@@ -118,12 +125,12 @@ function ecd {
     if [ "$ECD_TEMP_FILE_PATH" == "" ]; then
         TMP_PATH=$(mktemp)
         export ECD_TEMP_FILE_PATH=$TMP_PATH
-    else                        
-        # Read the temp file, and initialize the history array      
-        while read line
+    else			
+		# Read the temp file, and initialize the history array 	    
+		while read line
         do
-            ECD_HISTORY_LIST[$ECD_HISTORY_LIST_CNT]=$line
-            let ECD_HISTORY_LIST_CNT=$ECD_HISTORY_LIST_CNT+1
+           	ECD_HISTORY_LIST[$ECD_HISTORY_LIST_CNT]=$line
+           	let ECD_HISTORY_LIST_CNT=$ECD_HISTORY_LIST_CNT+1
         done < "$ECD_TEMP_FILE_PATH"
     fi
 
@@ -155,16 +162,16 @@ function ecd {
     #       else
     #           DONT do anything.
 
-    # List mode, do nothing but listing 
+    # List mode, do nothing but listing	
     if [ "$PARAM_01" == "-l" ]; then
 
         # Error Handling
         if [[ ( $ECD_HISTORY_LIST_CNT == 0 ) ]]; then
             echo "[INFO] empty history list"
             return $TRUE 
-        fi
-        
-        draw_menu        
+		fi
+   		
+		draw_menu        
 
     # Sort the list
     elif [ "$PARAM_01" == "-s" ]; then
@@ -173,7 +180,7 @@ function ecd {
         if [[ ( $ECD_HISTORY_LIST_CNT == 0 ) ]]; then
             echo "[INFO] empty history list"
             return $TRUE 
-        fi
+		fi
         sort $ECD_TEMP_FILE_PATH -o $ECD_TEMP_FILE_PATH
 
 
@@ -191,15 +198,15 @@ function ecd {
         if [[ $PARAM_02 = *[^0-9]* ]]; then
             echo "[ERROR] INCORRECT index"
             return $TRUE
-        fi
+		fi
 
         let userIdx=$PARAM_02
-               
+		       
         # in BRANCH mode, we do not offer reordering for advanced users
-        if (( "$userIdx" >= "$ECD_HISTORY_LIST_CNT" )); then
-            echo "[ERROR] Index out of range"
-            return $TRUE
-        fi                      
+        if (( $userIdx >= $ECD_HISTORY_LIST_CNT )); then
+			echo "[ERROR] Index out of range"
+			return $TRUE
+		fi			
 
         cd "${ECD_HISTORY_LIST[$userIdx]}"
         return $TRUE
@@ -223,76 +230,76 @@ function ecd {
         if [[ $PARAM_02 = *[^0-9]* ]]; then
             echo "[ERROR] INVALID index, must be digits"
             return $TRUE
-        fi
+		fi
 
         let userIdx=$PARAM_02
-               
+		       
         # in BRANCH mode, we do not offer reordering for advanced users
-        if (( "$userIdx" >= "$ECD_HISTORY_LIST_CNT" )); then
-            echo "[ERROR] index out of range"
-            return $TRUE
-        fi                      
+        if (( $userIdx >= $ECD_HISTORY_LIST_CNT )); then
+			echo "[ERROR] index out of range"
+			return $TRUE
+		fi			
 
         unset ECD_HISTORY_LIST[$userIdx]
         write_file
 
     elif [ "$PARAM_01" == "-i" ]; then
         
-        if (( "$ECD_HISTORY_LIST_CNT" == 0 )); then
+		if (( $ECD_HISTORY_LIST_CNT == 0 )); then
             echo "[ERROR] Empty history"
             return $TRUE 
-        fi
-        
-        # Wait for user input
-        draw_menu                       
-        # for Linux
-        # echo -e "q)\t\e[7mExit\e[00m\n"
-        # for Mac OS X
-        echo -e "q)\t\033[7mExit\033[00m\n"
-        read -p "Enter your choice:" input
+		fi
+	    
+		# Wait for user input
+		draw_menu   			
+		# for Linux
+		# echo -e "q)\t\e[7mExit\e[00m\n"
+		# for Mac OS X
+		echo -e "q)\t\033[7mExit\033[00m\n"
+		read -p "Enter your choice:" input
 
         if [ "$input" == "q" ]; then
-            return $TRUE
-        fi
+   	        return $TRUE
+		fi
 
-        # Check if user input is NUMBER
-        if [[ $input = *[^0-9]* ]]; then
+       	# Check if user input is NUMBER
+       	if [[ $input = *[^0-9]* ]]; then
              echo "[ERROR] '$input' is not a number."
              return $TRUE    
-        fi
+		fi
 
         decho "$input, $ECD_HISTORY_LIST_CNT"
-        if (( "$input" >= "$ECD_HISTORY_LIST_CNT" )); then
-            echo "[ERROR] invalid index - out of range"
-            return $TRUE
-        fi
+		if (( $input >= $ECD_HISTORY_LIST_CNT )); then
+			echo "[ERROR] invalid index - out of range"
+			return $TRUE
+		fi
 
         if [ "$pwdFullPath" == "${ECD_HISTORY_LIST[$input]}" ]; then
-            return $TRUE
+           	return $TRUE
         fi
 
-        # update temp file (reorder is needed)
-        fullPath=${ECD_HISTORY_LIST[$input]}
+		# update temp file (reorder is needed)
+		fullPath=${ECD_HISTORY_LIST[$input]}
         write_file "$fullPath"
-        cd "$fullPath"
-    
-    elif [ "$PARAM_01" == "-h" ]; then
-        usage
-        return $TRUE            
+   	    cd "$fullPath"
+	
+	elif [ "$PARAM_01" == "-h" ]; then
+		usage
+		return $TRUE      	
     else
         # check if the directory exists
         if [ -d "$PARAM_01" ]; then 
 
             # write the temp file
-            fullPath=$(greadlink -f $PARAM_01)
+            fullPath=$($ECD_READLINK -f $PARAM_01)
             
             # Add to the tail of the list
             ECD_HISTORY_LIST[$ECD_HISTORY_LIST_CNT]=$fullPath
             let ECD_HISTORY_LIST_CNT=$ECD_HISTORY_LIST_CNT+1
 
-            # update temp file (reorder is needed)
-            write_file "$fullPath"
-            cd "$fullPath"
+			# update temp file (reorder is needed)
+			write_file "$fullPath"
+           	cd "$fullPath"
         else
             echo "[INFO] The directory does NOT exist"
             return $TRUE    
@@ -301,4 +308,3 @@ function ecd {
 }
 
 # alias cd='ecd'
-
